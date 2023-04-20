@@ -16,8 +16,8 @@ POE = POE_HAT_B.POE_HAT_B()
 
 try:
     while(1):
-        POE.POE_HAT_Display(43)
-        time.sleep(1)
+        POE.POE_HAT_Display(45)
+        time.sleep(3)
 
 except KeyboardInterrupt:
     print("ctrl + c:")
