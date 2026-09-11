@@ -176,6 +176,26 @@ You can test or run the daemon manually with custom temperature and load thresho
 
 ---
 
+## Python Alternative (Modernized)
+
+A modernized, dependency-light Python version is also included for environments where a Python runtime is preferred.
+
+### Key Python Improvements:
+- **Zero Heavy Dependencies**: Completely removed `numpy` and `RPi.GPIO`.
+- **Universal I2C Fallback**: Uses `smbus2` -> `smbus` -> **pure-Python `fcntl` fallback** (works on modern Debian 12 / Bookworm PEP 668 environments even without `pip` or C-extensions installed).
+- **Graceful Fault Tolerance**: Does not crash if HDC1080 is disconnected, and handles offline network status gracefully.
+- **Predictive Cooling & No Screen Flicker**: Cached fonts, no `ClearWhite()` flashes, and fan cooldown timer.
+
+```bash
+# Run with defaults (target 54°C, 2s interval):
+python3 main.py
+
+# Run with custom parameters:
+python3 main.py --temp 52 --interval 1.5 --cooldown 25
+```
+
+---
+
 ## License
 
 This project is licensed under the GPLv3 License — see the [LICENSE](LICENSE) file for details.
