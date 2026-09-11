@@ -1,28 +1,99 @@
-##Contol FAN and LED screen on Poe-HAT-B for Raspberry Pi 4
+# Waveshare PoE HAT (B) Ultra-Fast C Daemon & OLED Dashboard
 
-This is the default script on Python3 for control FUN and LED screen On PoE-HAT-B
+Ультралегкий, енергоефективний та високошвидкісний демон на C для плати **Waveshare PoE HAT (B)** на **Raspberry Pi 4**.
 
-**Example to run:**
-```console
-git clone https://github.com/Toli-sman/Rpi4-PoE-hat-B.git
-sudo apt update && sudo apt install -y -qq python3 python3-pip
-sudo pip3 install RPi.GPIO smbus
-cd Rpi4-PoE-hat-B
-python3 main.py &
+Забезпечує предиктивне керування вентилятором на основі температури та навантаження процесора (CPU load) без тротлінгу та зайвого шуму, а також інформативний дашборд на OLED-дисплеї (SSD1306 128x32) з живою анімацією обертання вентилятора.
+
+---
+
+## Основні можливості
+
+- **Мінімальне навантаження на систему**: споживання CPU **< 0.1%**, пам'ять **< 2 МБ RAM** (на відміну від Python з Pillow, що споживає 2–5% CPU постійно).
+- **Розумне та тихе охолодження (Predictive Cooling)**:
+  - Вмикання за порогом високої температури ($\ge 56^\circ\text{C}$).
+  - Предиктивне ввімкнення під навантаженням: якщо CPU Load $\ge 65\%$ і $T \ge 50^\circ\text{C}$, кулер стартує завчасно, запобігаючи перегріву.
+  - Гістерезис: вимкнення лише після охолодження до $< 46^\circ\text{C}$.
+  - Cooldown Timer: захист від частих перемикань («клацання») — мінімум 25 секунд роботи після ввімкнення.
+  - У режимі спокою/легких задач вентилятор **повністю мовчить**.
+- **Компактний OLED-дашборд (128x32)**:
+  - **Ліва панель**:
+    - Рядок 0: IP-адреса (Ethernet/Wi-Fi) для зручного доступу по SSH.
+    - Рядок 1: Температура CPU + **графічний прогрес-бар** завантаження + відсотки (%).
+    - Рядок 2: Використання RAM (наприклад, `RAM:1.2G 30%`).
+    - Рядок 3: Показники клімату з сенсора HDC1080 (`ENV: 23.5C 45%`) або Uptime системи.
+  - **Права панель**:
+    - Індикатор `FAN`.
+    - **16x16 плавна 4-кадрова анімація турбіни вентилятора** під час роботи кулера.
+    - Статус `ON` (інвертований маркер) / `OFF`.
+
+---
+
+## Апаратне налаштування
+
+> ⚠️ **Важливо:** Переконайтеся, що апаратний перемикач на платі PoE HAT встановлений у положення **`P0`** (Program Control), а не `EN` (Always On).
+
+Також увімкніть шину I2C в системі (якщо ще не увімкнено):
+```bash
+sudo raspi-config
+# Interface Options -> I2C -> Enable -> Finish
 ```
 
-1. Path to drivers:
-`waveshare_POE_HAT_B/POE_HAT_B.py` - FAN driver
-`waveshare_POE_HAT_B/SSD1306.py` -LED driver
+---
 
-2. Pin connections can be viewed in waveshare_TSL2591\TSL2591.py and will be repeated here:
-TSL25911    =>    Jetson Nano/RPI(BCM)
-VCC         ->    3.3V
-GND         ->    GND
-SDA         ->    SDA
-SCL         ->    SCL
-INT         ->    4
+## Встановлення та запуск на Raspberry Pi
 
-Link of documentation: [PoE-HAT-B][def]
+### 1. Збірка з вихідного коду
+```bash
+git clone https://github.com/Toli-sman/Rpi4-PoE-hat-B.git
+cd Rpi4-PoE-hat-B
+make
+```
 
-[def]: https://www.waveshare.com/wiki/PoE_HAT_(B)?spm=a2g0o.detail.1000023.17.3e603f2dt24UJD
+### 2. Встановлення як системна служба (systemd)
+```bash
+sudo make install
+sudo systemctl enable --now rpi4-poe-hat.service
+```
+
+### 3. Перевірка статусу служби
+```bash
+sudo systemctl status rpi4-poe-hat.service
+```
+
+### 4. Видалення служби
+```bash
+sudo make uninstall
+```
+
+---
+
+## Параметри командного рядка
+
+Демон підтримує гнучке налаштування температурних порогів:
+
+```bash
+./poe_daemon --help
+
+Параметри:
+  -t, --temp-high <deg>    Температура ввімкнення кулера (за замовчуванням: 56.0 C)
+  -l, --temp-low  <deg>    Температура вимкнення кулера (за замовчуванням: 46.0 C)
+  -p, --temp-load <deg>    Поріг температури для тригера за навантаженням (за замовчуванням: 50.0 C)
+  -u, --load-thresh <pct>  Поріг навантаження CPU для предиктивного старту (за замовчуванням: 65.0 %)
+  -c, --cooldown <sec>     Мінімальний час роботи кулера після старту (за замовчуванням: 25 с)
+  -d, --daemon             Запуск у фоні (фоновий процес)
+  -m, --mock               Режим симуляції (для тестування без апаратної шини I2C)
+  -i, --i2c-dev <path>     Шлях до пристрою I2C (за замовчуванням: /dev/i2c-1)
+```
+
+---
+
+## Довідка по I2C адресах
+
+- `0x20`: PCF8574 I/O розширювач (керування вентилятором на піні P0).
+- `0x3C`: Драйвер OLED дисплея SSD1306 (128x32).
+- `0x40`: Датчик температури та вологості HDC1080.
+
+---
+
+## Документація виробника
+Офіційний опис плати: [Waveshare PoE HAT (B) Wiki](https://www.waveshare.com/wiki/PoE_HAT_(B))

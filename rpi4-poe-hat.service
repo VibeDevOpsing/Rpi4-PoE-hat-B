@@ -1,0 +1,14 @@
+[Unit]
+Description=Waveshare PoE HAT (B) High-Speed Fan & OLED Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/poe_daemon --temp-high 56 --temp-low 46 --temp-load 50 --load-thresh 65 --cooldown 25
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target
