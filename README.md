@@ -84,44 +84,65 @@ This daemon uses a **hybrid predictive model**:
 
 ## Installation & Setup on Raspberry Pi
 
-### Prerequisites
-1. **Enable I2C:**
-   ```bash
-   sudo raspi-config
-   # Navigate to: Interface Options -> I2C -> Enable -> Yes -> Finish
-   ```
-2. **Install compiler tools (if not already installed):**
-   ```bash
-   sudo apt update
-   sudo apt install -y build-essential git
-   ```
+You can install and run the daemon using either the **interactive installer script**, the **one-command Make setup**, or via manual steps.
 
-### 1. Clone & Build
+### Method 1: Interactive Installer (Recommended)
+An interactive script that checks dependencies, configures I2C, scans hardware, compiles the binary, and enables the service:
+
 ```bash
 git clone https://github.com/VibeDevOpsing/Rpi4-PoE-hat-B.git
 cd Rpi4-PoE-hat-B
-make
+chmod +x install.sh
+./install.sh
 ```
 
-### 2. Install as a System Service (`systemd`)
-Install the compiled binary to `/usr/local/bin/poe_daemon` and configure the auto-starting system service:
+---
+
+### Method 2: One-Command Make Setup
+Automates dependency installation via `apt`, enables I2C, builds the binary, installs the systemd service, and starts it:
+
 ```bash
-sudo make install
-sudo systemctl enable --now rpi4-poe-hat.service
+git clone https://github.com/VibeDevOpsing/Rpi4-PoE-hat-B.git
+cd Rpi4-PoE-hat-B
+sudo make setup
 ```
 
-### 3. Check Service Status & Logs
+---
+
+### Method 3: Step-by-Step Manual Setup
+
+1. **Install Dependencies:**
+   ```bash
+   sudo make deps
+   ```
+2. **Build the C Daemon:**
+   ```bash
+   make
+   ```
+3. **Install and Enable System Service:**
+   ```bash
+   sudo make install
+   sudo make service-start
+   ```
+
+---
+
+### Service Management Commands
 ```bash
-sudo systemctl status rpi4-poe-hat.service
-```
-To view live daemon logs:
-```bash
+# Check service status:
+sudo make service-status
+# or: sudo systemctl status rpi4-poe-hat.service
+
+# View live daemon logs:
 journalctl -u rpi4-poe-hat.service -f
-```
 
-### 4. Uninstall
-To stop and completely remove the service and binary:
-```bash
+# Restart service:
+sudo make service-restart
+
+# Stop service:
+sudo make service-stop
+
+# Uninstall and remove daemon completely:
 sudo make uninstall
 ```
 
